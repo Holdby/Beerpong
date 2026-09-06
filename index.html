@@ -3,114 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zufälliger Aufgabengenerator</title>
+    
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            text-align: center;
+            background-color: #f4f4f9;
         }
         .container {
-            background-color: white;
+            background: white;
             padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            text-align: center;
-            max-width: 400px;
-            width: 100%;
-        }
-        h1 {
-            color: #333;
-            font-size: 24px;
-            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
         .result-box {
-            background-color: #eef2f5;
-            padding: 15px;
-            border-radius: 8px;
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 5px;
+            background: #e9ecef;
             min-height: 80px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
+            /* Sanfter Übergang beim Farbwechsel */
+            transition: background-color 0.3s ease; 
         }
         .category {
+            font-size: 22px;
             font-weight: bold;
-            color: #555;
             text-transform: uppercase;
-            font-size: 14px;
-            letter-spacing: 1px;
-            margin-bottom: 5px;
+            color: #6c757d; /* Bleibt wie gewünscht immer grau */
+            margin: 0 0 10px 0;
         }
         .task {
-            font-size: 18px;
-            font-weight: 500;
+            font-size: 20px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .info {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    
-    
-    <div class="result-box">
-        <div id="category-display" class="category">Kategorie lädt...</div>
-        <div id="task-display" class="task">Aufgabe lädt...</div>
+
+    <!-- ID hinzugefügt, um die Box über JavaScript anzusprechen -->
+    <div id="resultBox" class="result-box">
+        <h2 id="categoryDisplay" class="category">Lädt...</h2>
+        <div id="taskDisplay" class="task">Bitte warten...</div>
+    </div>
+
+    <div class="info">
+        
     </div>
 </div>
 
 <script>
-    const aufgabenPool = {
-        "Niete": [
-            "Aufgabe A Niete",
-            "Aufgabe B Niete",
-            "Aufgabe C Niete",
-            "Aufgabe D Niete",
-            "Aufgabe E Niete",
-            "Aufgabe F Niete",
-            "Aufgabe G Niete"
-        ],
+    // 1. Kategorien definieren (Hintergrundfarben als 'bgColor' im Hex-Format hinzugefügt)
+    const categories = [
+        { id: "Niete", name: "💣 Niete 💣", weight: 0.585, color: "red", bgColor: "#ffe3e3" },
+        { id: "Gewinn", name: "🍀 Gewinn 🍀", weight: 0.195, color: "green", bgColor: "#e3f9e5" },
+        { id: "Neutral", name: "🍻 Neutral 🍻", weight: 0.2, color: "#696969", bgColor: "#ffffff" },
+        { id: "Tod", name: "💀 Tod 💀", weight: 0.02, color: "black", bgColor: "#e2e2e2" }
+    ];
+
+    // 2. Aufgabenpools
+    const tasks = {
         "Gewinn": [
-            "Aufgabe A Gewinn",
-            "Aufgabe B Gewinn",
-            "Aufgabe C Gewinn",
-            "Aufgabe D Gewinn",
-            "Aufgabe E Gewinn",
-            "Aufgabe F Gewinn",
-            "Aufgabe G Gewinn"
+            "Du darfst einen Extrawurf mit verschlossenen Augen machen",
+            "Du darfst einen Extrawurf mit Rücken zum Tisch machen",
+            "Stelle einen extra Becher zum gegnerischen Team",
+	    "Du darfst einen Becher vom gegnerischen Team beliebig umstellen",
+	    "Der Becher bleibt stehen und muss nicht getrunken werden",
+	    "Entscheide ob die Seiten getauscht werden oder nicht",
+	    "Der Becherinhalt darf in einen beliebigen Becher der Gegner gekippt werden",
+	    "Granny-Shot: Die nächsten beiden Würfe des Gegnerteams müssen von unten nach oben erfolgen"
+
+        ],
+        "Niete": [
+            "Das gegnerische Team darf einen Extrawurf mit verschlossenen Augen machen",
+            "Die nächsten zwei Würfe müssen mit der schwachen Hand gemacht werden",
+            "Setze die nächsten zwei Runden aus (nur ein Wurf fürs Team)",
+	    "T-Rex-Wurf: Die Ellbogen müssen beim nächsten Wurf eng an den Körper gepresst bleiben",
+	    "Der nächste Wurf muss im Sitzen (auf dem Boden) erfolgen",
+	    "Der nächste Wurf muss eine Wand berühren",
+	    "Trinke einen beliebigen Extra-Becher",
+	    "Das Gegnerteam darf entscheiden ob die Seiten getauscht werden oder nicht"
+
+        ],
+        "Tod": [
+            "Alle umliegenden Becher müssen auch getrunken werden",
+            "Das gegnerische Team darf seine Becher komplett verteilen"
+        ],
+
+	"Neutral": [
+            "Keine Aufgabe"
         ]
+
     };
 
-    function waehleZufaelligeAufgabe() {
-        const kategorien = Object.keys(aufgabenPool);
+    function generateTask() {
+        const random = Math.random();
         
-        const zufaelligeKategorieIndex = Math.floor(Math.random() * kategorien.length);
-        const ausgewaehlteKategorie = kategorien[zufaelligeKategorieIndex];
-        
-        const aufgabenAusKategorie = aufgabenPool[ausgewaehlteKategorie];
-        
-        const zufaelligeAufgabeIndex = Math.floor(Math.random() * aufgabenAusKategorie.length);
-        const ausgewaehlteAufgabe = aufgabenAusKategorie[zufaelligeAufgabeIndex];
-        
-        const kategorieAnzeige = document.getElementById("category-display");
-        const aufgabeAnzeige = document.getElementById("task-display");
+        let selectedCategory = null;
+        let cumulativeWeight = 0;
 
-        kategorieAnzeige.innerText = ausgewaehlteKategorie;
-        aufgabeAnzeige.innerText = ausgewaehlteAufgabe;
-
-        if (ausgewaehlteKategorie === "Niete") {
-            aufgabeAnzeige.style.color = "#d9534f"; // Rot
-        } else if (ausgewaehlteKategorie === "Gewinn") {
-            aufgabeAnzeige.style.color = "#28a745"; // Grün
+        for (const cat of categories) {
+            cumulativeWeight += cat.weight;
+            if (random < cumulativeWeight) {
+                selectedCategory = cat;
+                break;
+            }
         }
+
+        const categoryTasks = tasks[selectedCategory.id];
+        const randomTaskIndex = Math.floor(Math.random() * categoryTasks.length);
+        const selectedTask = categoryTasks[randomTaskIndex];
+
+        // Elemente abrufen
+        const resultBox = document.getElementById("resultBox");
+        const categoryDisplay = document.getElementById("categoryDisplay");
+        const taskDisplay = document.getElementById("taskDisplay");
+
+        // Inhalte und Stile dynamisch setzen
+        categoryDisplay.innerText = selectedCategory.name;
+        taskDisplay.innerText = selectedTask;
+        taskDisplay.style.color = selectedCategory.color;
+        
+        // Ändert die Hintergrundfarbe der Box basierend auf der Kategorie
+        resultBox.style.backgroundColor = selectedCategory.bgColor;
     }
 
-    // Die Funktion wird automatisch ausgeführt, sobald die Seite geöffnet wird
-    window.onload = waehleZufaelligeAufgabe;
+    // Führt die Funktion sofort beim Laden der Seite aus
+    window.onload = generateTask;
 </script>
 
+</body>
+</html>
 </body>
 </html>
